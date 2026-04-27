@@ -2657,6 +2657,22 @@ HWC2::Error HWCDisplay::SubmitDisplayConfig(hwc2_config_t config) {
     return HWC2::Error::None;
   }
 
+  DisplayConfigVariableInfo new_info = {};
+  GetDisplayAttributesForConfig(INT(config), &new_info);
+
+  DisplayConfigVariableInfo old_info = {};
+  GetDisplayAttributesForConfig(INT(current_config), &old_info);
+
+  if (new_info.x_pixels != old_info.x_pixels || new_info.y_pixels != old_info.y_pixels) {
+      DLOGI("Dynamic mode switch detected: resizing framebuffer from %dx%d to %dx%d", 
+            old_info.x_pixels, old_info.y_pixels, new_info.x_pixels, new_info.y_pixels);
+            
+      SetFrameBufferResolution(new_info.x_pixels, new_info.y_pixels);
+      
+      geometry_changes_ |= GeometryChanges::kConfigChanged | GeometryChanges::kDisplayFrame;
+      layer_stack_invalid_ = true;
+  }
+
   DisplayError error = display_intf_->SetActiveConfig(config);
   if (error != kErrorNone) {
     DLOGE("Failed to set %d config! Error: %d", config, error);
